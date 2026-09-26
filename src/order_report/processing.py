@@ -8,7 +8,11 @@ logger = logging.getLogger(__name__)
 
 def load_orders(path: Path) -> pd.DataFrame:
     data = pd.read_csv(path)
-    logger.info("Loaded %d rows", len(data))
+
+    if data.empty:
+        raise ValueError(f"Input file contains no data: {path}")
+
+    logger.info("Loaded %d rows from %s", len(data), path)
     return data
 
 def validate_data(data: pd.DataFrame) -> None:
@@ -51,29 +55,67 @@ def format_column_boolean(column: pd.Series) -> pd.Series:
 
 def clean_data(data: pd.DataFrame) -> pd.DataFrame:
     data["region"] = format_column_text(data["region"])
+
     data["product_category"] = format_column_text(data["product_category"])
 
-    data["quantity"] = format_column_nbr(data["quantity"]).fillna(1)
+    data["quantity"] = format_column_nbr(data["quantity"])
+    invalid_quantity_count = data["quantity"].isna().sum()
+    if invalid_quantity_count > 0:
+        logger.warning(
+            "Found %d invalid quantity values; replacing with 1",
+            invalid_quantity_count,
+        )
+    data["quantity"] = data["quantity"].fillna(1)
+
     data["unit_price"] = format_column_nbr(data["unit_price"])
+    invalid_unit_price_count = data["unit_price"].isna().sum()
+    if invalid_unit_price_count > 0:
+        logger.warning(
+            "Found %d invalid unit price values; replacing with median",
+            invalid_unit_price_count,
+        )
     data["unit_price"] = data["unit_price"].fillna(data["unit_price"].median())
-    data["discount"] = format_column_nbr(data["discount"]).fillna(0)
+
+    data["discount"] = format_column_nbr(data["discount"])
+    invalid_discount_count = data["discount"].isna().sum()
+    if invalid_discount_count > 0:
+        logger.warning(
+            "Found %d invalid discount values; replacing with 0",
+            invalid_discount_count,
+        )
+    data["discount"] = data["discount"].fillna(0)
 
     data["returned"] = format_column_boolean(data["returned"])
 
+    logger.info("Data cleaning completed")
     return data        
 
+
+def remove_invalid_rows(data: pd.DataFrame) -> pd.DataFrame:
+    invalid_quantity = data["quantity"] < 0
+    invalid_unit_price = data["unit_price"] < 0
+    invalid_discount = (data["discount"] < 0) | (data["discount"] > 1)
+
+    invalid_rows = (
+        invalid_quantity
+        | invalid_unit_price
+        | invalid_discount
+    )
+
+    invalid_count = invalid_rows.sum()
+
+    if invalid_count > 0:
+        logger.warning(
+            "Removing %d rows with unreasonable values",
+            invalid_count,
+        )
+
+    data = data[~invalid_rows].reset_index(drop=True)
+
+    return data
 
 def calculate_columns(data: pd.DataFrame) -> pd.DataFrame:
     data["order_value"] = data["quantity"] * data["unit_price"]
     data["discounted_value"] = data["order_value"] * (1 - data["discount"])
 
     return data
-
-
-if __name__ == "__main__":
-    data = load_orders(Path("data/orders.csv"))
-    validate_data(data)
-    data = clean_data(data)
-    data = calculate_columns(data)
-
-    print(data.head())
