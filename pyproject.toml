@@ -7,6 +7,7 @@ name = "order-report"
 version = "0.1.0"
 dependencies = [
     "pandas",
+    "pytest",
 ]
 
 [tool.setuptools.packages.find]
