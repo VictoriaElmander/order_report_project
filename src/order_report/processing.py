@@ -7,6 +7,9 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 def load_orders(path: Path) -> pd.DataFrame:
+    if not path.exists():
+        raise FileNotFoundError(f"Input file not found: {path}")
+
     data = pd.read_csv(path)
 
     if data.empty:

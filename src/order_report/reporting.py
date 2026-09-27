@@ -1,6 +1,9 @@
+import logging
 from pathlib import Path
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 def create_overview(data: pd.DataFrame) -> pd.DataFrame:
     total_sales = round(data["discounted_value"].sum(),2,)
@@ -86,7 +89,8 @@ def create_returns_by_category(data: pd.DataFrame) -> pd.DataFrame:
     return returns_by_category
 
 def save_report(report: pd.DataFrame, output_dir: Path, filename: str) -> None:
-        file_path = output_dir / filename
-        report.to_csv(file_path, index = False)
+    file_path = output_dir / filename
+    report.to_csv(file_path, index = False)
+    logger.info("Report saved to %s", file_path)
 
 

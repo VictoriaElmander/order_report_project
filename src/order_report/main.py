@@ -44,7 +44,7 @@ def main():
     save_report(overview, config.output_dir, config.overview_file)
     save_report(sales_by_category, config.output_dir, config.category_sales_file)
     save_report(sales_by_region, config.output_dir, config.region_sales_file)
-    save_report(returns_by_category, config.output_dir, config.category_sales_file)
+    save_report(returns_by_category, config.output_dir, config.category_returns_file)
 
 
 if __name__ == "__main__":
